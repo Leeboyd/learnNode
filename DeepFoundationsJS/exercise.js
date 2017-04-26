@@ -1,3 +1,28 @@
+var projectTemplate = "<div class='project-entry'><h3 class='project-description' rel='js-project-description'></h3><ul class='work-entries' rel='js-work-entries'></ul><span class='work-time' rel='js-work-time'></span></div>";
+var workEntryTemplate = "<li class='work-entry'><span class='work-time' rel='js-work-time'></span><span class='work-description' rel='js-work-description'></span></li>";
+const maxVisibleWorkDescriptionLength = 20
+const maxWorkTime = 600
+const minWorkDescriptionLength = 5
+
+var projects = [];
+
+var $workEntryForm;
+var $workEntrySelectProject;
+var $workEntryDescription;
+var $workEntryTime;
+var $workEntrySubmit;
+var $totalTime;
+var $projectList;
+
+initUI();
+
+// hard coding some initial data
+addProject("學習");
+addProject("工作");
+addProject("休息");
+
+// **************************
+
 function initUI() {
 	$workEntryForm = $("[rel*=js-work-entry-form")
 	$workEntrySelectProject = $workEntryForm.find("[rel*=js-select-project]")
@@ -7,25 +32,24 @@ function initUI() {
 	$totalTime = $("[rel*=js-total-work-time]")
 	$projectList = $("[rel*=js-project-list]")
 
-	{ 
-		let handleClick = function submitNewWorkEntry() {
-			const projectId = Number($workEntrySelectProject.val())
-			const description = $workEntryDescription.val()
-			const minutes = $workEntryTime.val()
+  $workEntrySubmit.on("click", submitNewWorkEntry)
+}
 
-			if (!validateWorkEntry(description, minutes)) {
-				alert("Oops, bad entry. Try again.")
-				$workEntryDescription[0].focus()
-				return
-			}
+function submitNewWorkEntry () {
+  const projectId = Number($workEntrySelectProject.val())
+  const description = $workEntryDescription.val()
+  const minutes = $workEntryTime.val()
 
-			$workEntryDescription.val("")
-			$workEntryTime.val("")
-			addWorkToProject(projectId, description, minutes)
-			$workEntryDescription[0].focus()
-		}
-		$workEntrySubmit.on("click", handleClick)
-	}
+  if (!validateWorkEntry(description, minutes)) {
+    console.log('Oops, bad entry. Try again.')
+    $workEntryDescription[0].focus()
+    return
+  }
+
+  $workEntryDescription.val("")
+  $workEntryTime.val("")
+  addWorkToProject(projectId, description, minutes)
+  $workEntryDescription[0].focus()
 }
 
 function validateWorkEntry (description, minutes) {
@@ -171,29 +195,3 @@ function formatTime(time) {
 function isNaN (num) {
   return Number(num) !== Number(num) 
 }
-
-
-// **************************
-
-var projectTemplate = "<div class='project-entry'><h3 class='project-description' rel='js-project-description'></h3><ul class='work-entries' rel='js-work-entries'></ul><span class='work-time' rel='js-work-time'></span></div>";
-var workEntryTemplate = "<li class='work-entry'><span class='work-time' rel='js-work-time'></span><span class='work-description' rel='js-work-description'></span></li>";
-const maxVisibleWorkDescriptionLength = 20
-const maxWorkTime = 600
-const minWorkDescriptionLength = 5
-
-var projects = [];
-
-var $workEntryForm;
-var $workEntrySelectProject;
-var $workEntryDescription;
-var $workEntryTime;
-var $workEntrySubmit;
-var $totalTime;
-var $projectList;
-
-initUI();
-
-// hard coding some initial data
-addProject("學習");
-addProject("工作");
-addProject("休息");

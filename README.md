@@ -14,6 +14,10 @@
   - declarations be contained in explicit blocks of scope
   - declared with `let` or `const`
 
+### ex3
+  - hoisting
+  - `function declarations`
+
 ## PTTMailer
 
 ```ruby
