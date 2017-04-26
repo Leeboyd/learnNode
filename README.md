@@ -1,6 +1,13 @@
-## Workshop
+# Workshop
 
+## DeepFoundationsJS
 
+```ruby
+學習 Kyle Simpson 進階 JS 課程的練習 
+```
+1. ex1
+  - value types and coercions
+  - validation logic
 
 ## PTTMailer
 
@@ -38,11 +45,12 @@ Models: Mongoose schemas （ORM）和 MongoDB database (no-SQl DB)
 
 + 權限管理：admin用戶才可以做"POST"、"DELETE"、"PUT"、"GET"（查詢）有login的用戶都能操作
 + Population：利用ObjectIds做到不同collections互相參考（如SQL中的JOIN）的功能。
+- OAuth
+  - 新增 Passport’s Facebook Strategy
+  - 加入２條 routes: one for FB authentication and one for handling the FB callback.
+
+-. 6/14 複習
+  - 新增1條 routes:/favorites，並加入相對應的routing，以及RESTful API。
 ```
 
-  a. OAuth
-  + 新增 Passport’s Facebook Strategy
-  + 加入２條 routes: one for FB authentication and one for handling the FB callback.
 
-  b. 6/14 複習
-  + 新增1條 routes:/favorites，並加入相對應的routing，以及RESTful API。
