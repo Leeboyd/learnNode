@@ -1,0 +1,43 @@
+a,
+a:hover,
+a:focus {
+  text-decoration: none;
+}
+h2 {
+  font-size: 150px;
+  line-height: 100%;
+  color: #53c1af;
+  padding: 80px 30px 30px;
+  border: 0;
+  margin: 0;
+  text-align: center;
+  font-weight: normal;
+}
+.notfound {
+  background: url("../notfound.jpg") center bottom no-repeat;
+  background-size: cover;
+  padding-bottom: 50px;
+}
+.notfound h3 {
+  font-size: 35px;
+  line-height: 100%;
+  color: #53c1af;
+  padding-bottom: 20px;
+  border: 0;
+  margin: 0;
+  text-align: center;
+}
+.notfound .back {
+  text-align: center;
+}
+.notfound .back a {
+  display: inline-block;
+  font-size: 16px;
+  line-height: 24px;
+  color: #53c1af;
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  margin: 15px auto;
+  border-radius: 10px;
+  background-image: linear-gradient(to bottom, #fff, #e0e0e0);
+}
