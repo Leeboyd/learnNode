@@ -127,39 +127,57 @@ function addWorkToProject (projectId, description, minutes) {
 	updateWorkLogTotalTime();
 }
 
-function addWorkEntryToList(projectEntryData,workEntryData) {
-	var $projectEntry = projectEntryData.$element;
-	var $projectWorkEntries = $projectEntry.find("[rel*=js-work-entries]");
+function addWorkEntryToList (projectEntryData, workEntryData) {
+	var $projectEntry = projectEntryData.$element
+	var $projectWorkEntries = $projectEntry.find("[rel*=js-work-entries]")
 
 	// create a new DOM element for the work entry
-	var $workEntry = $(workEntryTemplate);
-	$workEntry.attr("data-work-entry-id",workEntryData.id);
-	$workEntry.find("[rel*=js-work-time]").text(formatTime(workEntryData.time));
-	$workEntry.find("[rel*=js-work-description]").text(formatWorkDescription(workEntryData.description));
+	var $workEntry = $(workEntryTemplate)
+	$workEntry.attr('data-work-entry-id', workEntryData.id)
+	$workEntry.find('[rel*=js-work-time]').text(formatTime(workEntryData.time))
+	setupWorkDescription(workEntryData, $workEntry.find("[rel*=js-work-description]"))
 
-	workEntryData.$element = $workEntry;
+	workEntryData.$element = $workEntry
 
-	// multiple work entries now?
+  // multiple work entries now?
 	if (projectEntryData.work.length > 1) {
-		// find where the entry sits in the new sorted list
-		for (var entryIdx = 0; entryIdx < projectEntryData.work.length; entryIdx++) {
-			if (projectEntryData.work[entryIdx] === workEntryData) {
-				break;
+		{ let entryIdx;
+			// find where the entry sits in the new sorted list
+			for (let i = 0; i < projectEntryData.work.length; i++) {
+				if (projectEntryData.work[i] === workEntryData) {
+					entryIdx = i;
+					break;
+				}
 			}
-		}
 
-		// insert the entry into the correct location in DOM
-		if (entryIdx < (projectEntryData.work.length - 1)) {
-			projectEntryData.work[entryIdx + 1].$element.before($workEntry);
-		}
-		else {
-			projectEntryData.work[entryIdx - 1].$element.after($workEntry);
+			// insert the entry into the correct location in DOM
+			if (entryIdx < (projectEntryData.work.length - 1)) {
+				projectEntryData.work[entryIdx + 1].$element.before($workEntry)
+			}
+			else {
+				projectEntryData.work[entryIdx - 1].$element.after($workEntry)
+			}
 		}
 	}
 	// otherwise, just the first entry
 	else {
-		$projectEntry.addClass("visible");
-		$projectWorkEntries.append($workEntry);
+		$projectEntry.addClass("visible")
+		$projectWorkEntries.append($workEntry)
+	}
+}
+
+function setupWorkDescription (workEntryData, $workDescription) {
+	$workDescription.text(formatWorkDescription(workEntryData.description))
+
+	if (workEntryData.description.length > maxVisibleWorkDescriptionLength) {
+		$workDescription
+		.addClass("shortened")
+		.on('click', onClick = () => {
+			$workDescription
+			.removeClass('shortened')
+			.off('click', onClick)
+			.text(workEntryData.description)
+		})
 	}
 }
 

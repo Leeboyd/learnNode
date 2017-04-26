@@ -18,6 +18,9 @@
   - hoisting
   - `function declarations`
 
+### ex4
+  - closure
+  - demonstrate by add a click handler
 ## PTTMailer
 
 ```ruby
