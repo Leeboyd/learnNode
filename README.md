@@ -5,9 +5,14 @@
 ```ruby
 學習 Kyle Simpson 進階 JS 課程的練習 
 ```
-1. ex1
+
+### ex1
   - value types and coercions
   - validation logic
+
+### ex2
+  - declarations be contained in explicit blocks of scope
+  - declared with `let` or `const`
 
 ## PTTMailer
 

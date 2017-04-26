@@ -1,36 +1,36 @@
 function initUI() {
-	$workEntryForm = $("[rel*=js-work-entry-form");
-	$workEntrySelectProject = $workEntryForm.find("[rel*=js-select-project]");
-	$workEntryDescription = $workEntryForm.find("[rel*=js-work-description]");
-	$workEntryTime = $workEntryForm.find("[rel*=js-work-time]");
-	$workEntrySubmit = $workEntryForm.find("[rel*=js-submit-work-entry]");
-	$totalTime = $("[rel*=js-total-work-time]");
-	$projectList = $("[rel*=js-project-list]");
+	$workEntryForm = $("[rel*=js-work-entry-form")
+	$workEntrySelectProject = $workEntryForm.find("[rel*=js-select-project]")
+	$workEntryDescription = $workEntryForm.find("[rel*=js-work-description]")
+	$workEntryTime = $workEntryForm.find("[rel*=js-work-time]")
+	$workEntrySubmit = $workEntryForm.find("[rel*=js-submit-work-entry]")
+	$totalTime = $("[rel*=js-total-work-time]")
+	$projectList = $("[rel*=js-project-list]")
 
-  var handleClick = function () {
-    const projectId = Number($workEntrySelectProject.val())
-    const description = $workEntryDescription.val();
-    const minutes = $workEntryTime.val()
-    console.log(projectId, description, minutes)
+	{ 
+		let handleClick = function submitNewWorkEntry() {
+			const projectId = Number($workEntrySelectProject.val())
+			const description = $workEntryDescription.val()
+			const minutes = $workEntryTime.val()
 
-		if (!validateWorkEntry(description, minutes)) {
-			console.log("Oops, bad entry. Try again.")
-			$workEntryDescription[0].focus();
-			return;
+			if (!validateWorkEntry(description, minutes)) {
+				alert("Oops, bad entry. Try again.")
+				$workEntryDescription[0].focus()
+				return
+			}
+
+			$workEntryDescription.val("")
+			$workEntryTime.val("")
+			addWorkToProject(projectId, description, minutes)
+			$workEntryDescription[0].focus()
 		}
-
-		$workEntryDescription.val("");
-		$workEntryTime.val("");
-		addWorkToProject(projectId, description, minutes)
-		$workEntryDescription[0].focus();
-	};
-
-	$workEntrySubmit.on("click",handleClick);
+		$workEntrySubmit.on("click", handleClick)
+	}
 }
 
 function validateWorkEntry (description, minutes) {
   try {
-    if (description.length < 5) {
+    if (description.length < minWorkDescriptionLength) {
       throw new Error('description" must be at least 5 characters long')
     }
 		if (/^s*$/.test(minutes)) {
@@ -39,7 +39,7 @@ function validateWorkEntry (description, minutes) {
 		if (isNaN(minutes)) {
 			throw new Error('minutes" must be a number value')
 		}
-		if (minutes < 0 || minutes > 600) {
+		if (minutes < 0 || minutes > maxWorkTime) {
 			throw new Error('minutes" must be a number from 0 to 600 (inclusive)')
 		}		
   } catch (error) {
@@ -49,12 +49,12 @@ function validateWorkEntry (description, minutes) {
 }
 
 function addProject (project) {
-	var projectId = Math.round(Math.random()*1E4);
-	var projectEntryData = { id: projectId, description: project, work: [], time: 0};
-	projects.push(projectEntryData);
+	const projectId = Math.round(Math.random()*1E4);
+	let projectEntryData = { id: projectId, description: project, work: [], time: 0}
+	projects.push(projectEntryData)
 
-	addProjectToList(projectEntryData);
-	addProjectSelection(projectEntryData);
+	addProjectToList(projectEntryData)
+	addProjectSelection(projectEntryData)
 }
 
 function addProjectToList(projectEntryData) {
@@ -154,8 +154,8 @@ function updateWorkLogTotalTime() {
 }
 
 function formatWorkDescription(description) {
-	if (description.length > 20) {
-		description = `${description.substr(0,20)}...`;
+	if (description.length > maxVisibleWorkDescriptionLength) {
+		description = `${description.substr(0, maxVisibleWorkDescriptionLength)}...`;
 	}
 	return description;
 }
@@ -177,6 +177,9 @@ function isNaN (num) {
 
 var projectTemplate = "<div class='project-entry'><h3 class='project-description' rel='js-project-description'></h3><ul class='work-entries' rel='js-work-entries'></ul><span class='work-time' rel='js-work-time'></span></div>";
 var workEntryTemplate = "<li class='work-entry'><span class='work-time' rel='js-work-time'></span><span class='work-description' rel='js-work-description'></span></li>";
+const maxVisibleWorkDescriptionLength = 20
+const maxWorkTime = 600
+const minWorkDescriptionLength = 5
 
 var projects = [];
 
