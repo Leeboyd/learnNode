@@ -1,11 +1,68 @@
-const App = (function setupApp () {
-	var projectTemplate = "<div class='project-entry'><h3 class='project-description' rel='js-project-description'></h3><ul class='work-entries' rel='js-work-entries'></ul><span class='work-time' rel='js-work-time'></span></div>";
-	var workEntryTemplate = "<li class='work-entry'><span class='work-time' rel='js-work-time'></span><span class='work-description' rel='js-work-description'></span></li>";
-	const maxVisibleWorkDescriptionLength = 20
-	const maxWorkTime = 600
-	const minWorkDescriptionLength = 5
+// **************************
+// **************************
+// **************************
+let Helpers = {
+	maxVisibleWorkDescriptionLength: 20,
+	maxWorkTime: 600,
+	minWorkDescriptionLength: 5,
 
-	var projects = [];
+	validateWorkEntry (description, minutes) {
+		try {
+			if (description.length < this.minWorkDescriptionLength) {
+				throw new Error('description" must be at least 5 characters long')
+			}
+			if (/^s*$/.test(minutes)) {
+				throw new Error('minutes" must be a non-empty value')
+			}
+			if (this.isNaN(minutes)) {
+				throw new Error('minutes" must be a number value')
+			}
+			if (minutes < 0 || minutes > this.maxWorkTime) {
+				throw new Error('minutes" must be a number from 0 to 600 (inclusive)')
+			}		
+		} catch (error) {
+			if (error) return null
+		}
+		return true
+	},
+
+	formatWorkDescription (description) {
+		if (description.length > this.maxVisibleWorkDescriptionLength) {
+			description = `${description.substr(0, this.maxVisibleWorkDescriptionLength)}...`;
+		}
+		return description;
+	},
+
+	formatTime (time) {
+		var hours = Math.floor(time / 60);
+		var minutes = time % 60;
+		if (hours == 0 && minutes == 0) return "";
+		if (minutes < 10) minutes = `0${minutes}`;
+		return `${hours}:${minutes}`;
+	},
+
+	isNaN (num) {
+		return Number(num) !== Number(num) 
+	}
+
+}
+// **************************
+// **************************
+// **************************
+let UI = setupUI()
+UI.init()
+
+let App = setupApp(UI)
+App.addProject("學習")
+App.addProject("工作")
+App.addProject("休息")
+// **************************
+// **************************
+// **************************
+
+function setupUI () {
+	const projectTemplate = "<div class='project-entry'><h3 class='project-description' rel='js-project-description'></h3><ul class='work-entries' rel='js-work-entries'></ul><span class='work-time' rel='js-work-time'></span></div>";
+	const workEntryTemplate = "<li class='work-entry'><span class='work-time' rel='js-work-time'></span><span class='work-description' rel='js-work-description'></span></li>";
 
 	var $workEntryForm;
 	var $workEntrySelectProject;
@@ -15,10 +72,16 @@ const App = (function setupApp () {
 	var $totalTime;
 	var $projectList;
 
-	var publicAPI = {
+	var projectElements = {};
+	var workElements = {};
+
+	let publicAPI = {
 		init: initUI,
-		addProject: addProject,
-		addWorkToProject: addWorkToProject
+		addProjectToList: addProjectToList,
+		addProjectSelection: addProjectSelection,
+		addWorkEntryToList: addWorkEntryToList,
+		updateProjectTotalTime: updateProjectTotalTime,
+		updateWorkLogTotalTime: updateWorkLogTotalTime
 	}
 
 	return publicAPI
@@ -42,7 +105,7 @@ const App = (function setupApp () {
 		const description = $workEntryDescription.val()
 		const minutes = $workEntryTime.val()
 
-		if (!validateWorkEntry(description, minutes)) {
+		if (!Helpers.validateWorkEntry(description, minutes)) {
 			console.log('Oops, bad entry. Try again.')
 			$workEntryDescription[0].focus()
 			return
@@ -50,65 +113,114 @@ const App = (function setupApp () {
 
 		$workEntryDescription.val("")
 		$workEntryTime.val("")
-		addWorkToProject(projectId, description, minutes)
+		App.addWorkToProject(projectId, description, minutes)
 		$workEntryDescription[0].focus()
 	}
 
-	function validateWorkEntry (description, minutes) {
-		try {
-			if (description.length < minWorkDescriptionLength) {
-				throw new Error('description" must be at least 5 characters long')
-			}
-			if (/^s*$/.test(minutes)) {
-				throw new Error('minutes" must be a non-empty value')
-			}
-			if (isNaN(minutes)) {
-				throw new Error('minutes" must be a number value')
-			}
-			if (minutes < 0 || minutes > maxWorkTime) {
-				throw new Error('minutes" must be a number from 0 to 600 (inclusive)')
-			}		
-		} catch (error) {
-			if (error) return null
-		}
-		return true
+	function addProjectToList(projectId, projectDescription) {
+		var $project = $(projectTemplate);
+		$project.attr("data-project-id", projectId)
+		$project.find("[rel*=js-project-description]").text(projectDescription)
+		$projectList.append($project);
+		projectElements[projectId] = $project;
 	}
+
+	function addProjectSelection(projectId, projectDescription) {
+		var $option = $("<option></option>");
+		$option.attr("value", projectId)
+		$option.text(projectDescription)
+		$workEntrySelectProject.append($option);
+	}
+
+	function addWorkEntryToList (projectId, workEntryData) {
+		var $projectEntry = projectElements[projectId];
+		var $projectWorkEntries = $projectEntry.find("[rel*=js-work-entries]")
+
+		// create a new DOM element for the work entry
+		var $workEntry = $(workEntryTemplate)
+		$workEntry.attr('data-work-entry-id', workEntryData.id)
+		$workEntry.find('[rel*=js-work-time]').text(Helpers.formatTime(workEntryData.time))
+		setupWorkDescription(workEntryData, $workEntry.find("[rel*=js-work-description]"))
+
+		workEntryData.$element = $workEntry
+
+		// multiple work entries now?
+		if (App.getWorkEntryCount(projectId) > 1) {
+			{ let adjacentWorkEntryId, insertBefore;
+				[ adjacentWorkEntryId, insertBefore ] = App.getWorkEntryLocation(projectId,workEntryData.id);
+
+				if (insertBefore) {
+					workElements[adjacentWorkEntryId].before($workEntry);
+				}
+				else {
+					workElements[adjacentWorkEntryId].after($workEntry);
+				}
+			}
+		}
+		// otherwise, just the first entry
+		else {
+			$projectEntry.addClass("visible");
+			$projectWorkEntries.append($workEntry);
+		}
+	}
+
+	function setupWorkDescription (workEntryData, $workDescription) {
+		$workDescription.text(Helpers.formatWorkDescription(workEntryData.description))
+
+		if (workEntryData.description.length > Helpers.maxVisibleWorkDescriptionLength) {
+			$workDescription
+			.addClass("shortened")
+			.on('click', onClick = () => {
+				$workDescription
+				.removeClass('shortened')
+				.off('click', onClick)
+				.text(workEntryData.description)
+			})
+		}
+	}
+
+	function updateProjectTotalTime (projectId, projectTime) {
+		var $projectEntry = projectElements[projectId];
+		$projectEntry.find("> [rel*=js-work-time]").text(Helpers.formatTime(projectTime)).show();
+	}
+
+	function updateWorkLogTotalTime(time) {
+		if (time > 0) {
+			$totalTime.text(Helpers.formatTime(time)).show();
+		}
+		else {
+			$totalTime.text("").hide();
+		}
+	}
+}
+
+// **************************
+// **************************
+// **************************
+
+function setupApp (UI) {
+	const projects = []
+	let totalTime = 0;
+
+	let publicAPI = {
+		addProject: addProject,
+		addWorkToProject: addWorkToProject,
+		getWorkEntryCount: getWorkEntryCount,
+		getWorkEntryLocation: getWorkEntryLocation
+	}
+
+	return publicAPI
 
 	function addProject (project) {
 		const projectId = Math.round(Math.random()*1E4);
 		let projectEntryData = { id: projectId, description: project, work: [], time: 0}
 		projects.push(projectEntryData)
-
-		addProjectToList(projectEntryData)
-		addProjectSelection(projectEntryData)
-	}
-
-	function addProjectToList(projectEntryData) {
-		var $project = $(projectTemplate);
-		$project.attr("data-project-id",projectEntryData.id);
-		$project.find("[rel*=js-project-description]").text(projectEntryData.description);
-		$projectList.append($project);
-
-		projectEntryData.$element = $project;
-	}
-
-	function addProjectSelection(projectEntryData) {
-		var $option = $("<option></option>");
-		$option.attr("value",projectEntryData.id);
-		$option.text(projectEntryData.description);
-		$workEntrySelectProject.append($option);
-	}
-
-	function findProjectEntry(projectId) {
-		for (var i = 0; i < projects.length; i++) {
-			if (projects[i].id === projectId) {
-				return projects[i];
-			}
-		}
+		UI.addProjectToList(projectEntryData.id, projectEntryData.description)
+		UI.addProjectSelection(projectEntryData.id, projectEntryData.description)
 	}
 
 	function addWorkToProject (projectId, description, minutes) {
-		projects.time = Number(projects.time) + minutes;
+		totalTime = (totalTime || 0) + minutes;
 		var projectEntryData = findProjectEntry(projectId);
 		projectEntryData.time = Number(projectEntryData.time) + minutes;
 
@@ -124,103 +236,47 @@ const App = (function setupApp () {
 			});
 		}
 
-		addWorkEntryToList(projectEntryData,workEntryData);
-		updateProjectTotalTime(projectEntryData);
-		updateWorkLogTotalTime();
+		UI.addWorkEntryToList(projectId, workEntryData);
+		UI.updateProjectTotalTime(projectId, projectEntryData.time);
+		UI.updateWorkLogTotalTime(totalTime);
 	}
 
-	function addWorkEntryToList (projectEntryData, workEntryData) {
-		var $projectEntry = projectEntryData.$element
-		var $projectWorkEntries = $projectEntry.find("[rel*=js-work-entries]")
-
-		// create a new DOM element for the work entry
-		var $workEntry = $(workEntryTemplate)
-		$workEntry.attr('data-work-entry-id', workEntryData.id)
-		$workEntry.find('[rel*=js-work-time]').text(formatTime(workEntryData.time))
-		setupWorkDescription(workEntryData, $workEntry.find("[rel*=js-work-description]"))
-
-		workEntryData.$element = $workEntry
-
-		// multiple work entries now?
-		if (projectEntryData.work.length > 1) {
-			{ let entryIdx;
-				// find where the entry sits in the new sorted list
-				for (let i = 0; i < projectEntryData.work.length; i++) {
-					if (projectEntryData.work[i] === workEntryData) {
-						entryIdx = i;
-						break;
-					}
-				}
-
-				// insert the entry into the correct location in DOM
-				if (entryIdx < (projectEntryData.work.length - 1)) {
-					projectEntryData.work[entryIdx + 1].$element.before($workEntry)
-				}
-				else {
-					projectEntryData.work[entryIdx - 1].$element.after($workEntry)
-				}
+	function findProjectEntry(projectId) {
+		for (var i = 0; i < projects.length; i++) {
+			if (projects[i].id === projectId) {
+				return projects[i];
 			}
 		}
-		// otherwise, just the first entry
-		else {
-			$projectEntry.addClass("visible")
-			$projectWorkEntries.append($workEntry)
+	}
+
+	function getWorkEntryCount(projectId) {
+		var projectEntryData = findProjectEntry(projectId);
+		return projectEntryData.work.length;
+	}
+
+	function getWorkEntryLocation(projectId,workEntryId) {
+		var projectEntryData = findProjectEntry(projectId);
+
+		// find where the entry sits in the new sorted list
+		var entryIdx;
+		for (let i = 0; i < projectEntryData.work.length; i++) {
+			if (projectEntryData.work[i].id == workEntryId) {
+				entryIdx = i;
+				break;
+			}
 		}
-	}
 
-	function setupWorkDescription (workEntryData, $workDescription) {
-		$workDescription.text(formatWorkDescription(workEntryData.description))
-
-		if (workEntryData.description.length > maxVisibleWorkDescriptionLength) {
-			$workDescription
-			.addClass("shortened")
-			.on('click', onClick = () => {
-				$workDescription
-				.removeClass('shortened')
-				.off('click', onClick)
-				.text(workEntryData.description)
-			})
-		}
-	}
-
-	function updateProjectTotalTime(projectEntryData) {
-		var $projectEntry = projectEntryData.$element;
-		$projectEntry.find("> [rel*=js-work-time]").text(formatTime(projectEntryData.time)).show();
-	}
-
-	function updateWorkLogTotalTime() {
-		if (projects.time > 0) {
-			$totalTime.text(formatTime(projects.time)).show();
+		// insert the entry into the correct location in DOM
+		if (entryIdx < (projectEntryData.work.length - 1)) {
+			return [ projectEntryData.work[entryIdx + 1].id, /*insertBefore=*/true ];
 		}
 		else {
-			$totalTime.text("").hide();
+			return [ projectEntryData.work[entryIdx - 1].id, /*insertBefore=*/false ];
 		}
 	}
+}
 
-	function formatWorkDescription(description) {
-		if (description.length > maxVisibleWorkDescriptionLength) {
-			description = `${description.substr(0, maxVisibleWorkDescriptionLength)}...`;
-		}
-		return description;
-	}
 
-	function formatTime(time) {
-		var hours = Math.floor(time / 60);
-		var minutes = time % 60;
-		if (hours == 0 && minutes == 0) return "";
-		if (minutes < 10) minutes = `0${minutes}`;
-		return `${hours}:${minutes}`;
-	}
 
-	function isNaN (num) {
-		return Number(num) !== Number(num) 
-	}
-})()
 
-App.init()
-
-// hard coding some initial data
-App.addProject("學習")
-App.addProject("工作")
-App.addProject("休息")
 

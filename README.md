@@ -25,6 +25,7 @@
 ### ex5
   - module
   - wrapped around the all the variables and functions return back a public API
+  - 5-b Model-View Separate  
 
 ## PTTMailer
 
