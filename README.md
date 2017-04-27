@@ -21,6 +21,11 @@
 ### ex4
   - closure
   - demonstrate by add a click handler
+
+### ex5
+  - module
+  - wrapped around the all the variables and functions return back a public API
+
 ## PTTMailer
 
 ```ruby
