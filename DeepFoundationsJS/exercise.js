@@ -1,6 +1,3 @@
-// **************************
-// **************************
-// **************************
 let Helpers = {
 	maxVisibleWorkDescriptionLength: 20,
 	maxWorkTime: 600,
@@ -46,19 +43,19 @@ let Helpers = {
 	}
 
 }
-// **************************
-// **************************
-// **************************
+
 let UI = setupUI()
 UI.init()
 
 let App = setupApp(UI)
+
+// hard coding some initial data
 App.addProject("學習")
 App.addProject("工作")
 App.addProject("休息")
-// **************************
-// **************************
-// **************************
+// ----------------------------
+// View: Manage DOM
+// ----------------------------
 
 function setupUI () {
 	const projectTemplate = "<div class='project-entry'><h3 class='project-description' rel='js-project-description'></h3><ul class='work-entries' rel='js-work-entries'></ul><span class='work-time' rel='js-work-time'></span></div>";
@@ -117,22 +114,29 @@ function setupUI () {
 		$workEntryDescription[0].focus()
 	}
 
-	function addProjectToList(projectId, projectDescription) {
-		var $project = $(projectTemplate);
+	function addProjectToList(project) {
+		let projectId = project.getId()
+		let projectDescription = project.getDescription()
+		var $project = $(projectTemplate)
 		$project.attr("data-project-id", projectId)
 		$project.find("[rel*=js-project-description]").text(projectDescription)
-		$projectList.append($project);
-		projectElements[projectId] = $project;
+		$projectList.append($project)
+		projectElements[projectId] = $project
 	}
 
-	function addProjectSelection(projectId, projectDescription) {
+	function addProjectSelection(project) {
+		let projectId = project.getId()
+		let projectDescription = project.getDescription()
+
 		var $option = $("<option></option>");
 		$option.attr("value", projectId)
 		$option.text(projectDescription)
 		$workEntrySelectProject.append($option);
 	}
 
-	function addWorkEntryToList (projectId, workEntryData) {
+	function addWorkEntryToList (project, workEntryData) {
+		var projectId = project.getId()
+
 		var $projectEntry = projectElements[projectId];
 		var $projectWorkEntries = $projectEntry.find("[rel*=js-work-entries]")
 
@@ -145,9 +149,9 @@ function setupUI () {
 		workEntryData.$element = $workEntry
 
 		// multiple work entries now?
-		if (App.getWorkEntryCount(projectId) > 1) {
+		if (project.getWorkEntryCount(projectId) > 1) {
 			{ let adjacentWorkEntryId, insertBefore;
-				[ adjacentWorkEntryId, insertBefore ] = App.getWorkEntryLocation(projectId,workEntryData.id);
+				[ adjacentWorkEntryId, insertBefore ] = project.getWorkEntryLocation(projectId,workEntryData.id);
 
 				if (insertBefore) {
 					workElements[adjacentWorkEntryId].before($workEntry);
@@ -179,7 +183,10 @@ function setupUI () {
 		}
 	}
 
-	function updateProjectTotalTime (projectId, projectTime) {
+	function updateProjectTotalTime (project) {
+		var projectId = project.getId()
+		var projectTime = project.getTime()
+
 		var $projectEntry = projectElements[projectId];
 		$projectEntry.find("> [rel*=js-work-time]").text(Helpers.formatTime(projectTime)).show();
 	}
@@ -194,9 +201,9 @@ function setupUI () {
 	}
 }
 
-// **************************
-// **************************
-// **************************
+// ----------------------------
+// Model: Manage businese logic
+// ----------------------------
 
 function setupApp (UI) {
 	const projects = []
@@ -205,78 +212,109 @@ function setupApp (UI) {
 	let publicAPI = {
 		addProject: addProject,
 		addWorkToProject: addWorkToProject,
-		getWorkEntryCount: getWorkEntryCount,
-		getWorkEntryLocation: getWorkEntryLocation
 	}
 
 	return publicAPI
 
-	function addProject (project) {
-		const projectId = Math.round(Math.random()*1E4);
-		let projectEntryData = { id: projectId, description: project, work: [], time: 0}
-		projects.push(projectEntryData)
-		UI.addProjectToList(projectEntryData.id, projectEntryData.description)
-		UI.addProjectSelection(projectEntryData.id, projectEntryData.description)
+	function addProject (description) {
+		// const projectId = Math.round(Math.random()*1E4);
+		let project = Project(description)
+		projects.push(project)
+
+		UI.addProjectToList(project)
+		UI.addProjectSelection(project)
 	}
 
 	function addWorkToProject (projectId, description, minutes) {
 		totalTime = (totalTime || 0) + minutes;
-		var projectEntryData = findProjectEntry(projectId);
-		projectEntryData.time = Number(projectEntryData.time) + minutes;
-
+		var project = findProjectEntry(projectId);
+		
 		// create a new work entry for the list
-		var workEntryData = { id: projectEntryData.work.length + 1, description: description, time: minutes };
-		projectEntryData.work.push(workEntryData);
+		let workEntryData = { description: description, time: minutes }
 
-		// multiple work entries now?
-		if (projectEntryData.work.length > 1) {
-			// sort work entries in descending order of time spent
-			projectEntryData.work = projectEntryData.work.slice().sort(function(a,b){
-				return b.time - a.time;
-			});
-		}
+		project.addWork(workEntryData)
 
-		UI.addWorkEntryToList(projectId, workEntryData);
-		UI.updateProjectTotalTime(projectId, projectEntryData.time);
-		UI.updateWorkLogTotalTime(totalTime);
+		UI.addWorkEntryToList(project, workEntryData)
+		UI.updateProjectTotalTime(project)
+		UI.updateWorkLogTotalTime(totalTime)
 	}
 
 	function findProjectEntry(projectId) {
 		for (var i = 0; i < projects.length; i++) {
-			if (projects[i].id === projectId) {
+			if (projects[i].getId() === projectId) {
 				return projects[i];
 			}
 		}
 	}
 
-	function getWorkEntryCount(projectId) {
-		var projectEntryData = findProjectEntry(projectId);
-		return projectEntryData.work.length;
+}
+
+function Project(description) {
+	const projectId = Math.round(Math.random()*1E4)
+	let time = 0
+	let work = []
+
+	let publicAPI = {
+		getId: getId,
+		getDescription: getDescription,
+		getTime: getTime,
+		addWork: addWork,
+		getWorkEntryCount: getWorkEntryCount,
+		getWorkEntryLocation: getWorkEntryLocation
+	}
+	return publicAPI
+
+	function getId () {
+		return projectId
 	}
 
-	function getWorkEntryLocation(projectId,workEntryId) {
-		var projectEntryData = findProjectEntry(projectId);
+	function getDescription () {
+		return description
+	}
+
+	function getTime () {
+		return time
+	}
+
+	function addWork (workEntryData) {
+		workEntryData.id = work.length + 1
+		work.push(workEntryData)
+
+		time = (time || 0) + workEntryData.time
+
+		// multiple work entries now?
+		if (work.length > 1) {
+			// sort work entries in descending order of time spent
+			work.sort(function sortTimeDescending(a,b){
+				return b.time - a.time
+			})
+		}
+	}
+
+	function getWorkEntryCount () {
+		return work.length
+	}
+
+	function getWorkEntryLocation (workEntryId) {
 
 		// find where the entry sits in the new sorted list
-		var entryIdx;
-		for (let i = 0; i < projectEntryData.work.length; i++) {
-			if (projectEntryData.work[i].id == workEntryId) {
-				entryIdx = i;
-				break;
+		let entryIdx;
+		for (let i = 0; i < work.length; i++) {
+			if (work[i].id == workEntryId) {
+				entryIdx = i
+				break
 			}
 		}
 
 		// insert the entry into the correct location in DOM
-		if (entryIdx < (projectEntryData.work.length - 1)) {
-			return [ projectEntryData.work[entryIdx + 1].id, /*insertBefore=*/true ];
+		if (entryIdx < (work.length - 1)) {
+			return [work[entryIdx + 1].id, /*insertBefore=*/true ];
 		}
 		else {
-			return [ projectEntryData.work[entryIdx - 1].id, /*insertBefore=*/false ];
+			return [work[entryIdx - 1].id, /*insertBefore=*/false ];
 		}
 	}
 }
-
-
 
 
 
